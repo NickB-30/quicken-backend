@@ -1,4 +1,4 @@
-package com.nicolas.quickenproject;
+package com.nicolas.quicken;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -13,6 +13,9 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class AccountService {
@@ -54,12 +57,62 @@ public class AccountService {
         return new AccountSummary(totalIncome, totalExpenses, net);
     }
 
-    // Class to represent summary data
+    // Get daily summary for a date range
+    public List<DailySummary> getDailySummary(Long accountId, LocalDate fromDate, LocalDate toDate) {
+        List<Transaction> transactions = transactionRepository.findByAccountIdAndDateRange(accountId, fromDate, toDate);
+        
+        // Group transactions by date
+        Map<LocalDate, List<Transaction>> transactionsByDate = new HashMap<>();
+        for (Transaction transaction : transactions) {
+            LocalDate date = transaction.getDate();
+            transactionsByDate.computeIfAbsent(date, k -> new ArrayList<>()).add(transaction);
+        }
+        
+        // Calculate daily summaries
+        List<DailySummary> dailySummaries = new ArrayList<>();
+        for (Map.Entry<LocalDate, List<Transaction>> entry : transactionsByDate.entrySet()) {
+            LocalDate date = entry.getKey();
+            List<Transaction> dayTransactions = entry.getValue();
+            
+            BigDecimal dailyIncome = BigDecimal.ZERO;
+            BigDecimal dailyExpenses = BigDecimal.ZERO;
+            
+            // Loop through each transaction to check for positive or negative amount
+            for (Transaction transaction : dayTransactions) {
+                BigDecimal amount = transaction.getAmount();
+                if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                    dailyIncome = dailyIncome.add(amount);
+                } else {
+                    dailyExpenses = dailyExpenses.add(amount.abs());
+                }
+            }
+            
+            BigDecimal dailyNet = dailyIncome.subtract(dailyExpenses);
+            dailySummaries.add(new DailySummary(date, dailyIncome, dailyExpenses, dailyNet));
+        }
+        
+        // Sort by date
+        dailySummaries.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        
+        return dailySummaries;
+    }
+
+    // Class to represent account summary data
     @Data
     @AllArgsConstructor
     public static class AccountSummary {
         private BigDecimal totalIncome;
         private BigDecimal totalExpenses;
+        private BigDecimal net;
+    }
+
+    // Class to represent daily summary data
+    @Data
+    @AllArgsConstructor
+    public static class DailySummary {
+        private LocalDate date;
+        private BigDecimal income;
+        private BigDecimal expenses;
         private BigDecimal net;
     }
 }

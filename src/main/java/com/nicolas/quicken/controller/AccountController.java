@@ -33,4 +33,14 @@ public class AccountController {
     ) {
         return accountService.getAccountSummary(accountId, from, to);
     }
+
+    // GET /api/accounts/{accountId}/daily-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
+    @GetMapping("/{accountId}/daily-summary")
+    public List<AccountService.DailySummary> getDailySummary(
+        @PathVariable Long accountId,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        return accountService.getDailySummary(accountId, from, to);
+    }
 }

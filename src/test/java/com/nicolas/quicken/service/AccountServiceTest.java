@@ -120,4 +120,60 @@ public class AccountServiceTest {
         assertEquals(BigDecimal.ZERO, summary.getTotalExpenses());
         assertEquals(new BigDecimal("800.00"), summary.getNet());
     }
+
+    /*
+     * Test Case 4: Daily summary with transactions across multiple days
+     * Verifies correct grouping by date and individual daily calculations
+     */
+    @Test
+    public void testGetDailySummaryMultipleDays() {
+        // Setup test data
+        Long accountId = 1L;
+        LocalDate fromDate = LocalDate.of(2024, 6, 1);
+        LocalDate toDate = LocalDate.of(2024, 6, 30);
+
+        // Create test transactions across 3 different days
+        List<Transaction> transactions = Arrays.asList(
+            // June 1: Income only
+            new Transaction(1L, accountId, LocalDate.of(2024, 6, 1), new BigDecimal("1000.00"), "Salary"),
+            
+            // June 5: Expenses only
+            new Transaction(2L, accountId, LocalDate.of(2024, 6, 5), new BigDecimal("-200.00"), "Rent"),
+            new Transaction(3L, accountId, LocalDate.of(2024, 6, 5), new BigDecimal("-50.00"), "Utilities"),
+            
+            // June 10: Mixed income and expenses
+            new Transaction(4L, accountId, LocalDate.of(2024, 6, 10), new BigDecimal("500.00"), "Bonus"),
+            new Transaction(5L, accountId, LocalDate.of(2024, 6, 10), new BigDecimal("-100.00"), "Groceries")
+        );
+
+        when(transactionRepository.findByAccountIdAndDateRange(accountId, fromDate, toDate))
+            .thenReturn(transactions);
+
+        // Execute
+        List<AccountService.DailySummary> dailySummaries = accountService.getDailySummary(accountId, fromDate, toDate);
+
+        // Verify we have 3 days of summaries
+        assertEquals(3, dailySummaries.size());
+
+        // Verify June 1 (income only)
+        AccountService.DailySummary day1 = dailySummaries.get(0);
+        assertEquals(LocalDate.of(2024, 6, 1), day1.getDate());
+        assertEquals(new BigDecimal("1000.00"), day1.getIncome());
+        assertEquals(BigDecimal.ZERO, day1.getExpenses());
+        assertEquals(new BigDecimal("1000.00"), day1.getNet());
+
+        // Verify June 5 (expenses only)
+        AccountService.DailySummary day2 = dailySummaries.get(1);
+        assertEquals(LocalDate.of(2024, 6, 5), day2.getDate());
+        assertEquals(BigDecimal.ZERO, day2.getIncome());
+        assertEquals(new BigDecimal("250.00"), day2.getExpenses());
+        assertEquals(new BigDecimal("-250.00"), day2.getNet());
+
+        // Verify June 10 (mixed)
+        AccountService.DailySummary day3 = dailySummaries.get(2);
+        assertEquals(LocalDate.of(2024, 6, 10), day3.getDate());
+        assertEquals(new BigDecimal("500.00"), day3.getIncome());
+        assertEquals(new BigDecimal("100.00"), day3.getExpenses());
+        assertEquals(new BigDecimal("400.00"), day3.getNet());
+    }
 }

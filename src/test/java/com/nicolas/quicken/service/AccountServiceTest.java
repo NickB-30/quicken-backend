@@ -176,4 +176,32 @@ public class AccountServiceTest {
         assertEquals(new BigDecimal("100.00"), day3.getExpenses());
         assertEquals(new BigDecimal("400.00"), day3.getNet());
     }
+
+    /*
+     * Test Case 5: Account summary for single day (boundary edge case)
+     * Verifies behavior when from and to dates are the same
+     */
+    @Test
+    public void testGetAccountSummarySameDay() {
+        // Setup with from and to as the same date
+        Long accountId = 1L;
+        LocalDate sameDate = LocalDate.of(2024, 6, 15);
+
+        // Create transactions all on the same day
+        List<Transaction> transactions = Arrays.asList(
+            new Transaction(1L, accountId, sameDate, new BigDecimal("500.00"), "Payment"),
+            new Transaction(2L, accountId, sameDate, new BigDecimal("-100.00"), "Expense")
+        );
+
+        when(transactionRepository.findByAccountIdAndDateRange(accountId, sameDate, sameDate))
+            .thenReturn(transactions);
+
+        // Execute
+        AccountSummary summary = accountService.getAccountSummary(accountId, sameDate, sameDate);
+
+        // Verify calculations are correct for single day
+        assertEquals(new BigDecimal("500.00"), summary.getTotalIncome());
+        assertEquals(new BigDecimal("100.00"), summary.getTotalExpenses());
+        assertEquals(new BigDecimal("400.00"), summary.getNet());
+    }
 }
